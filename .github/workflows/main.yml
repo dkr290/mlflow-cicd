@@ -19,6 +19,8 @@ jobs:
   mlflow-build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    env:
+      MLFLOW_DOCKER_IMAGE: danikr238/mlflow2.0
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -28,10 +30,21 @@ jobs:
       - name: docker version and build
         run: |
             docker -v
-            docker build . -t danikr238/mlflow1.0:$GITHUB_RUN_ID
+            docker build . -t $MLFLOW_DOCKER_IMAGE:$GITHUB_RUN_ID
             docker images -a
       - name: docker login and push
         run: | 
          docker login -u ${{ secrets.dockerhubusername }} -p ${{ secrets.dockerhubpassword }}
-         docker push danikr238/mlflow1.0:$GITHUB_RUN_ID
+         docker push $MLFLOW_DOCKER_IMAGE:$GITHUB_RUN_ID
+  mlflow-deploy-aks:
+    needs: mlflow-build
+    runs-on: ubuntu-latest
+
+    - name: Get K8s context
+        uses: azure/aks-set-context@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          resource-group: aks-rg-dev
+          cluster-name: aks-cluster-dev
+        id: login  
       
