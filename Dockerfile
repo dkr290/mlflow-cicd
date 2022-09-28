@@ -14,7 +14,7 @@ RUN apt-get install -y python3-dev build-essential
 
 
 RUN useradd --uid $MLFLOW_UID --create-home ${MLFLOW_USER} \
-    && groupadd mlflowgroup --gid 101 \
+    && groupadd mlflowgroup --gid 5101 \
     && usermod --append --groups astrogroup ${MLFLOW_USER}
 
 WORKDIR /home/mlflow
