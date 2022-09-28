@@ -43,10 +43,10 @@ jobs:
     steps:
 
       - name: Get K8s context
-          uses: azure/aks-set-context@v1
-          with:
-            creds: ${{ secrets.AZURE_CREDENTIALS }}
-            resource-group: aks-rg-dev
-            cluster-name: aks-cluster-dev
-          id: login  
+        uses: azure/aks-set-context@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          resource-group: aks-rg-dev
+          cluster-name: aks-cluster-dev
+        id: login  
       
