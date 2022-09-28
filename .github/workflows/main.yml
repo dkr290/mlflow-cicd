@@ -40,11 +40,13 @@ jobs:
     needs: mlflow-build
     runs-on: ubuntu-latest
 
-    - name: Get K8s context
-        uses: azure/aks-set-context@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          resource-group: aks-rg-dev
-          cluster-name: aks-cluster-dev
-        id: login  
+    steps:
+
+      - name: Get K8s context
+          uses: azure/aks-set-context@v1
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
+            resource-group: aks-rg-dev
+            cluster-name: aks-cluster-dev
+          id: login  
       
