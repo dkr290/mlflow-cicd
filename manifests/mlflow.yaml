@@ -1,9 +1,4 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  creationTimestamp: null
-  name: mlflow
----
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -87,8 +82,7 @@ spec:
         volumeMounts:
         - name: postgresql-data
           mountPath: "/bitnami/postgresql"
-      imagePullSecrets:
-      - name: ghcr-cred
+     
       restartPolicy: Always
       volumes:
       - name: postgresql-data
@@ -210,7 +204,7 @@ spec:
               memory: 512Mi
               cpu: "0.5"
       imagePullSecrets:
-      - name: mlflow-pull-0873
+      - name: ghcr-cred
     
 
 ---

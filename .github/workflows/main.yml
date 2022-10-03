@@ -121,8 +121,10 @@ jobs:
       - name: Create secret mlflow-secret
         shell: bash
         run: |
-          kubectl create secret generic mlflow-secret --from-literal=DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          kubectl create ns mlflow
+          kubectl create secret generic mlflow-secret --from-literal=DB_PASSWORD=${{ secrets.DB_PASSWORD }} -n mlflow
+          kubectl create secret  docker-registry ghcr-cred --docker-username=${{ secrets.DOCKER_USER }} --docker-password=${{ secrets.DOCKER_PASSWORD }} --docker-email=${{ secrets.DOCKER_EMAIL}} -n mlflow
       # Deploy newly built changes to EKS cluster.
-      - name: Deploy To Cluster
+      - name: Deploy To EKS Cluster
         shell: bash
         run: kubectl apply -n default -f manifests/
