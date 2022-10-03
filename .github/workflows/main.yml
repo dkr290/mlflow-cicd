@@ -41,8 +41,9 @@ jobs:
           docker -v
           docker build . -f Dockerfile -t $MLFLOW_DOCKER_IMAGE
           docker images -a
-
-      - name: docker login and push
+      
+      - if: github.event_name != 'pull_request'
+        name: docker login and push
         id: push-image
         run: |
           echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -53,8 +54,9 @@ jobs:
           docker push $MLFLOW_DOCKER_IMAGE:$VERSION
           docker push $MLFLOW_DOCKER_IMAGE
           echo "::set-output name=commit::$VERSION"
-          
-      - name: Publish Deployment Artifacts
+
+      - if: github.event_name != 'pull_request'    
+        name: Publish Deployment Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: deployment-artifacts
@@ -65,17 +67,62 @@ jobs:
 
 
 
-  # mlflow-deploy-aks:
-  #   needs: mlflow-build
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-
-  #     - name: Get K8s context
-  #       uses: azure/aks-set-context@v1
-  #       with:
-  #         creds: ${{ secrets.AZURE_CREDENTIALS }}
-  #         resource-group: aks-rg-dev
-  #         cluster-name: aks-cluster-dev
-  #       id: login  
+  mlflow-deploy-eks:
+    name: Deploy
+    needs: mlflow-build
+    permissions:
+      id-token: write # This is required for Github Action to generate an id-token from Github OIDC
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        environment: [Dev]
+        region: [eu-central-1]
+    environment:
+      name: ${{ matrix.environment }}
+    steps:
+      - name: Download Deployment Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: deployment-artifacts
+          
+      # Replace the docker image tag in deployment spec.
+      - name: Substitute Values In Deployment Files
+        uses: cschleiden/replace-tokens@v1
+        with:
+          tokenPrefix: '${'
+          tokenSuffix: '}'
+          files: '["manifests/mlflow.yaml"]'
+        env:
+          COMMIT: ${{ needs.mlflow-build.outputs.commit }}
       
+      - name: Configure Kubectl
+        uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.23.6'
+        id: install
+      
+      # This action will use the GitHub OIDC id-token and request AWS STS to get temporary credentials.
+      # The temporary credentials are exported as env variables.
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ matrix.region }}
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+      
+      # The following command will update the kube config file with our cluster information.
+      # It will use the credentials exported by the previous action.
+      - name: Update KubeConfig
+        shell: bash
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.AWS_CLUSTER_NAME }} --region=${{ matrix.region }}
+      # create postgresql secret 
+      - name: Create secret mlflow-secret
+        shell: bash
+        run: |
+          kubectl create secret generic mlflow-secret --from-literal=DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+      # Deploy newly built changes to EKS cluster.
+      - name: Deploy To Cluster
+        shell: bash
+        run: kubectl apply -n default -f manifests/
