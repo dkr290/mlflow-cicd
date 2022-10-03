@@ -39,11 +39,10 @@ jobs:
       - name: docker version and build
         run: |
             docker -v
-            docker build . --file Dockerfile -t $MLFLOW_DOCKER_IMAGE
+            docker build . -f Dockerfile -t $MLFLOW_DOCKER_IMAGE
             docker images -a
+
       - name: docker login and push
-       
-        id: push-image
         run: |
           echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
         # Get Short commit id
