@@ -88,7 +88,7 @@ spec:
         - name: postgresql-data
           mountPath: "/bitnami/postgresql"
       imagePullSecrets:
-      - name: mlflow-pull-0873
+      - name: ghcr-cred
       restartPolicy: Always
       volumes:
       - name: postgresql-data
