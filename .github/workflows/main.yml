@@ -118,10 +118,14 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ secrets.AWS_CLUSTER_NAME }} --region=${{ matrix.region }}
       # create postgresql secret 
+
+      - name: Create namespace
+        run: kubectl apply -f manifests/namespace.yaml
+        
       - name: Create secret mlflow-secret
         shell: bash
         run: |
-          kubectl create ns mlflow
+          
           kubectl create secret generic mlflow-secret --from-literal=DB_PASSWORD=${{ secrets.DB_PASSWORD }} -n mlflow
           kubectl create secret  docker-registry ghcr-cred --docker-username=${{ secrets.DOCKER_USER }} --docker-password=${{ secrets.DOCKER_PASSWORD }} --docker-email=${{ secrets.DOCKER_EMAIL}} -n mlflow
       # Deploy newly built changes to EKS cluster.
