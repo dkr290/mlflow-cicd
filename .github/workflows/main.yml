@@ -55,13 +55,13 @@ jobs:
           docker push $MLFLOW_DOCKER_IMAGE
           echo "::set-output name=commit::$VERSION"
 
-      - if: github.event_name != 'pull_request'    
-        name: Publish Deployment Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: deployment-artifacts
-          path: |
-            deployment
+      # - if: github.event_name != 'pull_request'    
+      #   name: Publish Deployment Artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: deployment-artifacts
+      #     path: |
+      #       deployment
 
 
 
@@ -82,10 +82,10 @@ jobs:
     environment:
       name: ${{ matrix.environment }}
     steps:
-      - name: Download Deployment Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: deployment-artifacts
+      # - name: Download Deployment Artifacts
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: deployment-artifacts
           
       # Replace the docker image tag in deployment spec.
       - name: Substitute Values In Deployment Files
