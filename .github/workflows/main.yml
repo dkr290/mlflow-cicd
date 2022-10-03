@@ -9,18 +9,27 @@ on:
   #    - '.github/**'
   pull_request:
     branches: [ "main" ]
+  workflow_call:
+    outputs:
+      commit: 
+        description: "Short Commit Id"
+        value: ${{ jobs.build-and-push.outputs.commit }}
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
+env:
+  MLFLOW_DOCKER_IMAGE: ghcr.io/mlflow2.0
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
   mlflow-build:
+    name: Build and push docker image
     # The type of runner that the job will run on
+    
     runs-on: ubuntu-latest
-    env:
-      MLFLOW_DOCKER_IMAGE: danikr238/mlflow2.0
+    outputs:
+      commit: ${{ steps.push-image.outputs.commit }}
+    
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -30,23 +39,44 @@ jobs:
       - name: docker version and build
         run: |
             docker -v
-            docker build . -t $MLFLOW_DOCKER_IMAGE:$GITHUB_RUN_ID
+            docker build . --file Dockerfile -t $MLFLOW_DOCKER_IMAGE
             docker images -a
       - name: docker login and push
-        run: | 
-         docker login -u ${{ secrets.dockerhubusername }} -p ${{ secrets.dockerhubpassword }}
-         docker push $MLFLOW_DOCKER_IMAGE:$GITHUB_RUN_ID
-  mlflow-deploy-aks:
-    needs: mlflow-build
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Get K8s context
-        uses: azure/aks-set-context@v1
+       
+        id: push-image
+        run: |
+          echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        # Get Short commit id
+          VERSION=${GITHUB_SHA::8}
+          echo MLFLOW_DOCKER_IMAGE=$MLFLOW_DOCKER_IMAGE
+          echo VERSION=$VERSION
+          docker tag $MLFLOW_DOCKER_IMAGE $MLFLOW_DOCKER_IMAGE:$VERSION 
+          docker push $MLFLOW_DOCKER_IMAGE:$VERSION
+          docker push $MLFLOW_DOCKER_IMAGE
+          echo "::set-output name=commit::$VERSION"
+          
+      - name: Publish Deployment Artifacts
+        uses: actions/upload-artifact@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          resource-group: aks-rg-dev
-          cluster-name: aks-cluster-dev
-        id: login  
+          name: deployment-artifacts
+          path: |
+            deployment
+
+
+
+
+
+  # mlflow-deploy-aks:
+  #   needs: mlflow-build
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+
+  #     - name: Get K8s context
+  #       uses: azure/aks-set-context@v1
+  #       with:
+  #         creds: ${{ secrets.AZURE_CREDENTIALS }}
+  #         resource-group: aks-rg-dev
+  #         cluster-name: aks-cluster-dev
+  #       id: login  
       
