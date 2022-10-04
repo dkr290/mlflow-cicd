@@ -122,14 +122,16 @@ jobs:
       - name: Create namespace
         run: |
           kubectl apply -f manifests/namespace.yaml
-          ls -l
-        
+
+
       - name: Create secret mlflow-secret
         shell: bash
         run: |
           
           kubectl create secret generic mlflow-secret --from-literal=DB_PASSWORD=${{ secrets.DB_PASSWORD }} -n mlflow
           kubectl create secret  docker-registry ghcr-cred --docker-username=${{ secrets.DOCKER_USER }} --docker-password=${{ secrets.DOCKER_PASSWORD }} --docker-email=${{ secrets.DOCKER_EMAIL}} -n mlflow
+        continue-on-error: true
+        
       # Deploy newly built changes to EKS cluster.
       - name: Deploy To EKS Cluster
         shell: bash
