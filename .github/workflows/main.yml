@@ -135,4 +135,4 @@ jobs:
       # Deploy newly built changes to EKS cluster.
       - name: Deploy To EKS Cluster
         shell: bash
-        run: kubectl apply -n default -f manifests/
+        run: kubectl apply  -f manifests/mlflow.yaml
