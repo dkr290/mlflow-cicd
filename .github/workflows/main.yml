@@ -86,7 +86,7 @@ jobs:
       #   uses: actions/download-artifact@v3
       #   with:
       #     name: deployment-artifacts
-          
+      - uses: actions/checkout@v3    
       # Replace the docker image tag in deployment spec.
       - name: Substitute Values In Deployment Files
         uses: cschleiden/replace-tokens@v1
