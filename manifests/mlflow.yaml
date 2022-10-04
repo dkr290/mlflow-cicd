@@ -157,7 +157,7 @@ spec:
       containers:
         - name: mlflow-tracking-server-pod
           # The docker image is pulled from dockerhub.
-          image: aabccontainerregistry.azurecr.io/mlflow:${COMMIT}
+          image: github.com/dkr290/mlflow-cicd/mlflow:${COMMIT}
           imagePullPolicy: Always
           env: # we extract the values we set in the configmap and mount them as environmen variables in the pods.
           - name: DEFAULT_ARTIFACT_ROOT
