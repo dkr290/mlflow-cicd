@@ -120,7 +120,9 @@ jobs:
       # create postgresql secret 
 
       - name: Create namespace
-        run: kubectl apply -f manifests/namespace.yaml
+        run: |
+          kubectl apply -f manifests/namespace.yaml
+          ls -l
         
       - name: Create secret mlflow-secret
         shell: bash
