@@ -187,16 +187,7 @@ spec:
                 name: mlflow-configmap
                 key: DB_NAME
           
-          - name: AZURE_STORAGE_CONNECTION_STRING
-            valueFrom:
-              secretKeyRef:
-                name: aamlflowartifacts-cstring
-                key: AZURE_STORAGE_CONNECTION_STRING
-          - name: AZURE_STORAGE_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: aamlflowartifacts-key
-                key: AZURE_STORAGE_ACCESS_KEY
+          
           resources:
             limits:
               memory: "3Gi"
