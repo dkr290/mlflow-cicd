@@ -127,7 +127,10 @@ jobs:
       - name: Create secret mlflow-secret
         shell: bash
         run: |
-          
+          kubectl delete secret default-artifact-root -n mlflow
+          kubectl delete secret mlflow-secret -n mlflow
+          kubectl delete secret docker-registry -n mlflow
+          kubectl create secret generic default-artifact-root --from-literal=DEFAULT_ARTIFACT_ROOT=${{ secrets.DEFAULT_ARTIFACT_ROOT }}
           kubectl create secret generic mlflow-secret --from-literal=DB_PASSWORD=${{ secrets.DB_PASSWORD }} -n mlflow
           kubectl create secret  docker-registry ghcr-cred --docker-username=${{ secrets.DOCKER_USER }} --docker-password=${{ secrets.DOCKER_PASSWORD }} --docker-email=${{ secrets.DOCKER_EMAIL}} -n mlflow
         continue-on-error: true
