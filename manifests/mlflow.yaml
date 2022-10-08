@@ -17,7 +17,7 @@ metadata:
 provisioner: ebs.csi.aws.com
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true 
-ReclaimPolicy: Retain
+reclaimPolicy: Retain
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
