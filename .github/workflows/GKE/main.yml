@@ -1,0 +1,142 @@
+name: mlflow-build-deploy
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  #  paths-ignore:
+  #    - '.github/**'
+  pull_request:
+    branches: [ "main" ]
+  workflow_call:
+    outputs:
+      commit: 
+        description: "Short Commit Id"
+        value: ${{ jobs.build-and-push.outputs.commit }}
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+env:
+  MLFLOW_DOCKER_IMAGE: ghcr.io/${{ github.repository }}
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  mlflow-build:
+    name: Build and push docker image
+    # The type of runner that the job will run on
+    
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.push-image.outputs.commit }}
+    
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      - name: docker version and build
+        run: |
+          docker -v
+          docker build . -f Dockerfile -t $MLFLOW_DOCKER_IMAGE
+          docker images -a
+      
+      - if: github.event_name != 'pull_request'
+        name: docker login and push
+        id: push-image
+        run: |
+          echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          VERSION=${GITHUB_SHA::8}
+          echo MLFLOW_DOCKER_IMAGE=$MLFLOW_DOCKER_IMAGE
+          echo VERSION=$VERSION
+          docker tag $MLFLOW_DOCKER_IMAGE $MLFLOW_DOCKER_IMAGE:$VERSION 
+          docker push $MLFLOW_DOCKER_IMAGE:$VERSION
+          docker push $MLFLOW_DOCKER_IMAGE
+          echo "::set-output name=commit::$VERSION"
+
+      # - if: github.event_name != 'pull_request'    
+      #   name: Publish Deployment Artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: deployment-artifacts
+      #     path: |
+      #       deployment
+
+
+
+
+
+  mlflow-deploy-gke:
+    name: Deploy
+    needs: mlflow-build
+    permissions:
+      id-token: write # This is required for Github Action to generate an id-token from Github OIDC
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        environment: [Dev]
+        region: [eu-central-1]
+    environment:
+      name: ${{ matrix.environment }}
+    steps:
+      # - name: Download Deployment Artifacts
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: deployment-artifacts
+      - uses: actions/checkout@v3    
+      # Replace the docker image tag in deployment spec.
+      - name: Substitute Values In Deployment Files
+        uses: cschleiden/replace-tokens@v1
+        with:
+          tokenPrefix: '${'
+          tokenSuffix: '}'
+          files: '["manifests/mlflow.yaml"]'
+        env:
+          COMMIT: ${{ needs.mlflow-build.outputs.commit }}
+      
+      - name: Configure Kubectl
+        uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.23.6'
+        id: install
+      
+      # This action will use the GitHub OIDC id-token and request AWS STS to get temporary credentials.
+      # The temporary credentials are exported as env variables.
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ matrix.region }}
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+      
+      # The following command will update the kube config file with our cluster information.
+      # It will use the credentials exported by the previous action.
+      - name: Update KubeConfig
+        shell: bash
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.AWS_CLUSTER_NAME }} --region=${{ matrix.region }}
+      # create postgresql secret 
+
+      - name: Create namespace
+        run: |
+          kubectl apply -f manifests/namespace.yaml
+
+
+      - name: Create secret mlflow-secret
+        shell: bash
+        continue-on-error: true
+        run: |
+        
+          kubectl create configmap  default-artifact-root --from-literal=DEFAULT_ARTIFACT_ROOT=${{ secrets.DEFAULT_ARTIFACT_ROOT }} -n mlflow --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic mlflow-secret --from-literal=DB_PASSWORD=${{ secrets.DB_PASSWORD }} -n mlflow --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret  docker-registry ghcr-cred --docker-username=${{ secrets.DOCKER_USER }} --docker-password=${{ secrets.DOCKER_PASSWORD }} --docker-email=${{ secrets.DOCKER_EMAIL}} -n mlflow --dry-run=client -o yaml | kubectl apply -f -
+        
+        
+      # Deploy newly built changes to EKS cluster.
+      - name: Deploy To EKS Cluster
+        shell: bash
+        run: |
+          kubectl apply  -f manifests/mlflow.yaml
+          kubectl apply -f   ingress/mlflow-lb.yaml
