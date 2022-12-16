@@ -10,6 +10,15 @@ data:
   DB_HOST: "mlflow-postgresql"
 
 ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true 
+reclaimPolicy: Retain
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -18,10 +27,10 @@ metadata:
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: gp2
+  storageClassName: ebs-sc
   resources:
     requests:
-      storage: 50Gi
+      storage: 8Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
