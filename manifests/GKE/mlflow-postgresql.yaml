@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mlflow-postgresql
+    
+  name: mlflow-postgresql
+  namespace: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow-postgresql
+      
+  template:
+    metadata:
+      labels:
+        app: mlflow-postgresql
+        
+    spec:
+      initContainers:
+      - name: take-data-dir-ownership
+        image:  alpine:3.16.2
+        command: ['sh', '-c','chmod 777 /bitnami/postgresql' ]
+
+        
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: "/bitnami/postgresql"
+     
+      containers:
+      - image: bitnami/postgresql
+        name: postgresql
+       
+        env:
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-configmap
+              key: DB_USERNAME
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-secret
+              key: DB_PASSWORD
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-configmap
+              key: DB_NAME
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "0.3"
+          requests:
+            memory: 256Mi
+            cpu: "0.1"
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: "/bitnami/postgresql"
+     
+      restartPolicy: Always
+      volumes:
+      - name: postgresql-data
+        persistentVolumeClaim:
+          claimName: "mlflow-postgresql-data"

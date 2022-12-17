@@ -1,3 +1,110 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true 
+reclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-postgresql-data
+  namespace: mlflow
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: ebs-sc
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mlflow-postgresql
+    
+  name: mlflow-postgresql
+  namespace: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow-postgresql
+      
+  template:
+    metadata:
+      labels:
+        app: mlflow-postgresql
+        
+    spec:
+      initContainers:
+      - name: take-data-dir-ownership
+        image:  alpine:3.16.2
+        command: ['sh', '-c','chmod 777 /bitnami/postgresql' ]
+
+        
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: "/bitnami/postgresql"
+     
+      containers:
+      - image: bitnami/postgresql
+        name: postgresql
+       
+        env:
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-configmap
+              key: DB_USERNAME
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-secret
+              key: DB_PASSWORD
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-configmap
+              key: DB_NAME
+        resources:
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+          requests:
+            memory: 1024Mi
+            cpu: "0.5"
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: "/bitnami/postgresql"
+     
+      restartPolicy: Always
+      volumes:
+      - name: postgresql-data
+        persistentVolumeClaim:
+          claimName: "mlflow-postgresql-data"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-postgresql
+  namespace: mlflow
+  labels:
+    mlflow: mlflow-service
+spec:
+  ports:
+    - name: "5432"
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  type: ClusterIP
+  selector:
+    app: mlflow-postgresql
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:

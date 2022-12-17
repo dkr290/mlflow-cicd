@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-postgresql-data
+  namespace: mlflow
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: gcp-sc
+  resources:
+    requests:
+      storage: 8Gi

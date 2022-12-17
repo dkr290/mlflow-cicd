@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlflow-configmap
+  namespace: mlflow
+data:
+  DB_NAME: "mlflow-tracking-server-database"
+  DB_USERNAME: "admin"
+  DB_HOST: "mlflow-postgresql"
