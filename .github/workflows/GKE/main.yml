@@ -68,7 +68,13 @@ jobs:
 
 
   mlflow-deploy-gke:
-    name: Deploy
+    env:
+        
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+      GKE_CLUSTER_NAME: 'operations-dev-gkedemo1'
+      GKE_LOCATION: 'europe-north1'
+  
     needs: mlflow-build
     permissions:
       id-token: write # This is required for Github Action to generate an id-token from Github OIDC
@@ -81,6 +87,7 @@ jobs:
         region: [eu-central-1]
     environment:
       name: ${{ matrix.environment }}
+
     steps:
       # - name: Download Deployment Artifacts
       #   uses: actions/download-artifact@v3
@@ -96,29 +103,29 @@ jobs:
           files: '["manifests/mlflow.yaml"]'
         env:
           COMMIT: ${{ needs.mlflow-build.outputs.commit }}
-      
-      - name: Configure Kubectl
-        uses: azure/setup-kubectl@v2.0
-        with:
-          version: 'v1.23.6'
-        id: install
-      
-      # This action will use the GitHub OIDC id-token and request AWS STS to get temporary credentials.
-      # The temporary credentials are exported as env variables.
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-region: ${{ matrix.region }}
-          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
-      
-      # The following command will update the kube config file with our cluster information.
-      # It will use the credentials exported by the previous action.
-      - name: Update KubeConfig
-        shell: bash
-        run: |
-          aws eks update-kubeconfig --name ${{ secrets.AWS_CLUSTER_NAME }} --region=${{ matrix.region }}
-      # create postgresql secret 
+    
 
+    # Setup gcloud CLI
+      - uses: google-github-actions/setup-gcloud@94337306dda8180d967a56932ceb4ddcf01edae7
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GKE_PROJECT }}
+
+  
+    # Get the GKE credentials so we can deploy to the cluster
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}  
+      
+      - id: get-credentials 
+        uses: google-github-actions/get-gke-credentials@main
+        with:
+          cluster_name: $GKE_CLUSTER_NAME
+          location: $GKE_LOCATION
+          project_id: ${{ secrets.GKE_PROJECT }}
+      
+      
       - name: Create namespace
         run: |
           kubectl apply -f manifests/namespace.yaml
@@ -135,8 +142,18 @@ jobs:
         
         
       # Deploy newly built changes to EKS cluster.
-      - name: Deploy To EKS Cluster
+      - name: Deploy To GKE Cluster
         shell: bash
         run: |
-          kubectl apply  -f manifests/mlflow.yaml
-          kubectl apply -f   ingress/mlflow-lb.yaml
+          kubectl apply  -f manifests/GKE/mlflow-cm.yaml
+          kubectl apply  -f manifests/GKE/mlflow-storageclass.yaml
+          kubectl apply  -f manifests/GKE/mlflow-postgresql-data.yaml
+          kubectl apply  -f manifests/GKE/mlflow-postgresql.yaml
+          kubectl apply  -f manifests/GKE/mlflow-postgresql-service.yaml
+          kubectl apply  -f manifests/GKE/mlflow.yaml
+
+      - name: Deploy Loadbalancer
+        shell: bash
+        run: |
+         kubectl apply  -f ingress/mlflow-lb.yaml
+          
