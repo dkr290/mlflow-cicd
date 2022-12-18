@@ -49,7 +49,17 @@ jobs:
             --failOnCVSS 7
             --enableRetired
             --nodeAuditSkipDevDependencies
-
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
+        with:
+           name: Depcheck report
+           path: ${{github.workspace}}/reports
+      
+      - name: Run OPA Conftest
+        run: |
+          cd go-todo-api
+          docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego  Dockerfile
+          
       - name: docker version and build
         run: |
           docker -v
