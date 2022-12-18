@@ -123,8 +123,8 @@ jobs:
       - id: get-credentials 
         uses: google-github-actions/get-gke-credentials@main
         with:
-          cluster_name: "$GKE_CLUSTER_NAME"
-          location: "$GKE_LOCATION"
+          cluster_name: ${{ GKE_CLUSTER_NAME }}
+          location: ${{ GKE_LOCATION }}
           project_id: ${{ secrets.GKE_PROJECT }}
       
       
