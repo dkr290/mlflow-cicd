@@ -72,8 +72,7 @@ jobs:
         
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
       PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-      GKE_CLUSTER_NAME: 'operations-dev-gkedemo1'
-      GKE_LOCATION: 'europe-north1'
+      
   
     needs: mlflow-build
     permissions:
@@ -103,6 +102,8 @@ jobs:
           files: '["manifests/mlflow.yaml"]'
         env:
           COMMIT: ${{ needs.mlflow-build.outputs.commit }}
+          GKE_CLUSTER_NAME: 'operations-dev-gkedemo1'
+          GKE_LOCATION: 'europe-north1'
     
 
     # Setup gcloud CLI
@@ -121,8 +122,8 @@ jobs:
       - id: get-credentials 
         uses: google-github-actions/get-gke-credentials@main
         with:
-          cluster_name: $GKE_CLUSTER_NAME
-          location: $GKE_LOCATION
+          cluster_name: "$GKE_CLUSTER_NAME"
+          location: "$GKE_LOCATION"
           project_id: ${{ secrets.GKE_PROJECT }}
       
       
