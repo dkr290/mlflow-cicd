@@ -124,7 +124,7 @@ jobs:
         uses: google-github-actions/get-gke-credentials@main
         with:
           cluster_name: $GKE_CLUSTER_NAME
-          location: $GKE_LOCATION
+          location: europe-north1
           project_id: ${{ secrets.GKE_PROJECT }}
       
       
