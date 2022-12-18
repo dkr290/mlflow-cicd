@@ -19,8 +19,7 @@ on:
   workflow_dispatch:
 env:
   MLFLOW_DOCKER_IMAGE: ghcr.io/${{ github.repository }}
-  GKE_CLUSTER_NAME: operations-dev-gkedemo1
-  GKE_LOCATION: europe-north1
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -123,7 +122,7 @@ jobs:
       - id: get-credentials 
         uses: google-github-actions/get-gke-credentials@main
         with:
-          cluster_name: $GKE_CLUSTER_NAME
+          cluster_name: operations-dev-gkedemo1
           location: europe-north1
           project_id: ${{ secrets.GKE_PROJECT }}
       
