@@ -57,7 +57,7 @@ jobs:
       
       - name: Run OPA Conftest
         run: |
-          cd go-todo-api
+      
           docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego  Dockerfile
           
       - name: docker version and build
