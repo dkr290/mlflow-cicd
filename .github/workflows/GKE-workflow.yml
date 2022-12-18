@@ -84,7 +84,7 @@ jobs:
       max-parallel: 1
       matrix:
         environment: [Dev]
-        region: [eu-central-1]
+        region: [europe-north1]
     environment:
       name: ${{ matrix.environment }}
 
@@ -129,7 +129,7 @@ jobs:
       
       - name: Create namespace
         run: |
-          kubectl apply -f manifests/namespace.yaml
+          kubectl apply -f manifests/GKE/namespace.yaml
 
 
       - name: Create secret mlflow-secret
