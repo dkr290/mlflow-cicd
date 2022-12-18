@@ -19,6 +19,8 @@ on:
   workflow_dispatch:
 env:
   MLFLOW_DOCKER_IMAGE: ghcr.io/${{ github.repository }}
+  GKE_CLUSTER_NAME: operations-dev-gkedemo1
+  GKE_LOCATION: europe-north1
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -99,11 +101,10 @@ jobs:
         with:
           tokenPrefix: '${'
           tokenSuffix: '}'
-          files: '["manifests/mlflow.yaml"]'
+          files: '["manifests/GKE/mlflow.yaml"]'
         env:
           COMMIT: ${{ needs.mlflow-build.outputs.commit }}
-          GKE_CLUSTER_NAME: 'operations-dev-gkedemo1'
-          GKE_LOCATION: 'europe-north1'
+          
     
 
     # Setup gcloud CLI
