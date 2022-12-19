@@ -13,9 +13,9 @@ RUN apt update && apt install -y python3-venv gcc
 RUN apt-get install -y python3-dev build-essential
 
 
-RUN useradd --uid $MLFLOW_UID --create-home ${MLFLOW_USER} \
+RUN useradd --uid $MLFLOW_UID --create-home $MLFLOW_USER \
     && groupadd mlflowgroup --gid 5101 \
-    && usermod --append --groups mlflowgroup ${MLFLOW_USER}
+    && usermod --append --groups mlflowgroup $MLFLOW_USER
 
 WORKDIR /home/mlflow
 ENV VENV=.venv/myenv
@@ -34,6 +34,8 @@ ENV DB_PASSWORD=$DB_PASSWORD
 ENV DB_URL=$DB_URL:5432
 ENV DB_NAME=$DB_NAME
 ENV DEFAULT_ARTIFACT_ROOT=$DEFAULT_ARTIFACT_ROOT
+
+USER $MLFLOW_USER
 
 ENTRYPOINT mlflow server \
         --default-artifact-root  $DEFAULT_ARTIFACT_ROOT \

@@ -146,7 +146,7 @@ jobs:
         uses: google-github-actions/get-gke-credentials@main
         with:
           cluster_name: operations-dev-gkedemo1
-          location: europe-north1
+          location: europe-north1-a
           project_id: ${{ secrets.GKE_PROJECT }}
       
       
